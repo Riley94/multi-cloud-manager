@@ -1,0 +1,32 @@
+<!-- src/templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Multi-Cloud Instance Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        a {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px 20px;
+            background: #eee;
+            text-decoration: none;
+            border: 1px solid #aaa;
+            border-radius: 4px;
+        }
+        a:hover {
+            background: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>Select a Provider</h1>
+    <a href="{{ url_for('gcp_page') }}">GCP</a>
+    <a href="#">AWS (Coming Soon)</a>
+</body>
+</html>

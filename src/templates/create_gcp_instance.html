@@ -1,0 +1,82 @@
+<!-- src/templates/create_gcp_instance.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Create GCP Instance</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            max-width: 500px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-top: 10px;
+        }
+        input, select {
+            margin-top: 5px;
+            padding: 8px;
+        }
+        button {
+            margin-top: 20px;
+            padding: 8px 12px;
+            background: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            text-decoration: none;
+            background: #eee;
+            border: 1px solid #aaa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            color: #000;
+        }
+        .back-link:hover {
+            background: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>Create a New GCP Instance</h1>
+    <form method="POST">
+        <label for="project">Project:</label>
+        <select name="project" id="project" required>
+            <option value="">Select a project</option>
+            {% for proj in gcp_projects %}
+            <option value="{{ proj }}">{{ proj }}</option>
+            {% endfor %}
+        </select>
+        
+        <label for="instance_name">Instance Name:</label>
+        <input type="text" name="instance_name" id="instance_name" required />
+
+        <label for="zone">Zone:</label>
+        <input type="text" name="zone" id="zone" value="us-central1-a" required />
+
+        <label for="machine_type">Machine Type:</label>
+        <input type="text" name="machine_type" id="machine_type" value="n1-standard-1" required />
+
+        <label for="source_image">Source Image:</label>
+        <input type="text" name="source_image" id="source_image" value="projects/debian-cloud/global/images/family/debian-11" required />
+
+        <label for="network">Network:</label>
+        <input type="text" name="network" id="network" value="default" required />
+
+        <button type="submit">Create Instance</button>
+    </form>
+
+    <a class="back-link" href="{{ url_for('gcp_page') }}">Back to GCP Instances</a>
+</body>
+</html>

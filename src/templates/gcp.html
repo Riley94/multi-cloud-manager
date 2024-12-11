@@ -1,0 +1,83 @@
+<!-- src/templates/gcp.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GCP Instance Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .actions {
+            margin-bottom: 20px;
+        }
+        .actions button {
+            margin-right: 10px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 2em;
+        }
+        th, td {
+            border: 1px solid #aaa;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th {
+            background: #eee;
+        }
+    </style>
+</head>
+<body>
+    <h1>GCP Instances</h1>
+
+    <!-- Flash messages block -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+      <div class="flash-messages">
+        <ul>
+          {% for message in messages %}
+          <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="actions">
+        <a href="{{ url_for('create_gcp_instance') }}">Create New Instance</a>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Instance ID</th>
+                <th>Name</th>
+                <th>Zone</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for instance in instances %}
+            <tr>
+                <td>{{ instance.instance_id }}</td>
+                <td>{{ instance.name if instance.name else "-" }}</td>
+                <td>{{ instance.region }}</td>
+                <td>{{ instance.instance_type }}</td>
+                <td>{{ instance.status }}</td>
+                <td>
+                    <!-- Modify/Delete currently just placeholders -->
+                    <button onclick="alert('Modify instance {{ instance.instance_id }} coming soon!')">Modify</button>
+                    <button onclick="alert('Delete instance {{ instance.instance_id }} coming soon!')">Delete</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p><a href="{{ url_for('index') }}">Back to Providers</a></p>
+</body>
+</html>
