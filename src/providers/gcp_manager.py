@@ -1,7 +1,7 @@
 # src/providers/gcp_manager.py
 
 from typing import List
-from google.cloud import compute_v1
+from google.cloud import compute_v1, storage
 from core.models import ComputeInstance
 from core.abstractions import CloudProviderInterface
 import re
@@ -11,10 +11,7 @@ from google.auth import default
 from googleapiclient import discovery
 import logging
 
-# This function should match the official documentation from Google.
 def wait_for_extended_operation(operation, operation_description: str):
-    # Implement or copy from the official Google samples.
-    # Typically, you do something like:
     operation.result()  # Wait for the long-running operation to complete
     return f"{operation_description} completed successfully."
 
@@ -42,6 +39,7 @@ class GCPManager(CloudProviderInterface):
             self._ensure_compute_api_enabled(project)
 
         self.client = compute_v1.InstancesClient(credentials=credentials)
+        self.storage_client = storage.Client(credentials=credentials)
 
     def _ensure_compute_api_enabled(self, project_id: str):
         """
@@ -110,7 +108,6 @@ class GCPManager(CloudProviderInterface):
         """
         Revised create_instance method following the official Google sample style.
         """
-        logging.debug(f"Creating instance {instance_name} in project {project} zone {zone}...")
         instance_client = compute_v1.InstancesClient()
 
         # Configure network interface
@@ -129,11 +126,8 @@ class GCPManager(CloudProviderInterface):
                 access.nat_i_p = external_ipv4
             network_interface.access_configs = [access]
 
-        logging.debug("Network interface configured.")
-
         # Create a boot disk from source_image
         initialize_params = compute_v1.AttachedDiskInitializeParams(source_image=source_image)
-        logging.debug("Disk params initialized.")
 
         disk = compute_v1.AttachedDisk()
         disk.auto_delete = True
@@ -141,8 +135,6 @@ class GCPManager(CloudProviderInterface):
         disk.type_ = "PERSISTENT"
         disk.initialize_params = initialize_params
         disks = [disk]
-
-        logging.debug("Disk configured.")
 
         # Prepare the Instance object
         instance = compute_v1.Instance()
@@ -186,13 +178,11 @@ class GCPManager(CloudProviderInterface):
         request.zone = zone
         request.project = project
         request.instance_resource = instance
-        logging.debug("Request made.")
         
         operation = instance_client.insert(request=request)
 
         wait_for_extended_operation(operation, "instance creation")
 
-        logging.debug("Instance created.")
         return instance_client.get(project=project, zone=zone, instance=instance_name)
 
     def delete_instance(self, project: str, zone: str, instance_name: str):
@@ -228,7 +218,6 @@ class GCPManager(CloudProviderInterface):
         instance_client = compute_v1.InstancesClient()
         instance = instance_client.get(project=project, zone=zone, instance=instance_name)
         metadata_obj = instance.metadata
-        # Convert dict to list of Metadata.Items
         new_items = []
         for k, v in metadata.items():
             new_items.append({"key": k, "value": v})
@@ -243,3 +232,38 @@ class GCPManager(CloudProviderInterface):
 
         operation = instance_client.set_metadata(request=request)
         wait_for_extended_operation(operation, "setting instance metadata")
+
+    # Storage-related methods
+    def list_buckets(self) -> List[str]:
+        # If multiple projects, we'll just take the first one for simplicity
+        project = self.projects[0] if self.projects else None
+        if not project:
+            return []
+        buckets = self.storage_client.list_buckets(project=project)
+        return [b.name for b in buckets]
+
+    def create_bucket(self, bucket_name: str):
+        # Use the first project
+        project = self.projects[0] if self.projects else None
+        if not project:
+            raise Exception("No project specified in config for GCP.")
+
+        bucket = self.storage_client.bucket(bucket_name)
+        bucket.create(location="US")
+        return bucket.name
+
+    def delete_bucket(self, bucket_name: str):
+        bucket = self.storage_client.bucket(bucket_name)
+        bucket.delete()
+
+    def force_delete_bucket(self, bucket_name: str):
+        """
+        Force deletes a bucket by removing all objects first, then deleting the bucket.
+        """
+        bucket = self.storage_client.bucket(bucket_name)
+        # List and delete all objects
+        blobs = bucket.list_blobs()
+        for blob in blobs:
+            blob.delete()
+
+        bucket.delete()

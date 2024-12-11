@@ -1,19 +1,23 @@
-<!-- src/templates/gcp.html -->
+<!-- templates/gcp.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>GCP Instance Management</title>
+    <title>GCP Resources</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
         }
+        h2 {
+            margin-top: 40px;
+        }
         .actions {
             margin-bottom: 20px;
         }
-        .actions button {
+        .actions form {
+            display: inline-block;
             margin-right: 10px;
         }
         table {
@@ -29,26 +33,35 @@
         th {
             background: #eee;
         }
+        .flash-messages {
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f0f4c3;
+            border: 1px solid #cddc39;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
-    <h1>GCP Instances</h1>
+    <h1>GCP Resources</h1>
 
-    <!-- Flash messages block -->
+    <!-- Flash messages -->
     {% with messages = get_flashed_messages() %}
-      {% if messages %}
-      <div class="flash-messages">
+    {% if messages %}
+    <div class="flash-messages">
         <ul>
-          {% for message in messages %}
-          <li>{{ message }}</li>
-          {% endfor %}
+            {% for message in messages %}
+            <li>{{ message }}</li>
+            {% endfor %}
         </ul>
-      </div>
-      {% endif %}
+    </div>
+    {% endif %}
     {% endwith %}
 
+    <!-- Instances Section -->
+    <h2>Compute Engine Instances</h2>
     <div class="actions">
-        <a href="{{ url_for('create_gcp_instance') }}">Create New Instance</a>
+        <a href="{{ url_for('create_gcp_instance') }}" style="text-decoration:none; background:#eee; border:1px solid #aaa; padding:8px; border-radius:4px;">Create New Instance</a>
     </div>
     <table>
         <thead>
@@ -70,19 +83,41 @@
                 <td>{{ instance.instance_type }}</td>
                 <td>{{ instance.status }}</td>
                 <td>
-                    <a href="{{ url_for('modify_gcp_instance', instance_name=instance.name, project=instance.project, zone=instance.region) }}">
-                        Modify
-                    </a>
-                    <!-- Add a confirm dialog for safety -->
-                    <a href="{{ url_for('delete_gcp_instance', instance_name=instance.name, zone=instance.region, project=instance.project) }}" 
-                    onclick="return confirm('Are you sure you want to delete this instance?');">
-                    Delete
-                    </a>
+                    <a href="{{ url_for('modify_gcp_instance', instance_name=instance.name, project=instance.project, zone=instance.region) }}">Modify</a>
+                    <a href="{{ url_for('delete_gcp_instance', instance_name=instance.name, project=instance.project, zone=instance.region) }}" onclick="return confirm('Are you sure you want to delete this instance?');">Delete</a>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <!-- Buckets Section -->
+    <h2>GCS Buckets</h2>
+    <div class="actions">
+        <form method="POST" action="{{ url_for('create_gcp_bucket') }}">
+            <input type="text" name="bucket_name" placeholder="Enter new bucket name" required>
+            <button type="submit">Create Bucket</button>
+        </form>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Bucket Name</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in buckets %}
+            <tr>
+                <td>{{ b }}</td>
+                <td>
+                    <a href="{{ url_for('delete_gcp_bucket', bucket_name=b) }}" onclick="return confirm('Delete this bucket?');">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
     <p><a href="{{ url_for('index') }}">Back to Providers</a></p>
 </body>
 </html>

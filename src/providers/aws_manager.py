@@ -41,12 +41,10 @@ class AWSManager(CloudProviderInterface):
     def get_amis(self, region: str) -> List[dict]:
         """
         Retrieve a list of AMIs available in the specified region. 
-        For this example, we'll filter for Amazon Linux 2 AMIs owned by Amazon.
         Returns a list of dicts with 'ImageId' and 'Name'.
         """
         ec2 = self.session.client('ec2', region_name=region)
         # Filter for Amazon Linux 2 AMIs (HVM, EBS-backed, x86_64)
-        # Pattern often: "amzn2-ami-hvm-2.0.*-x86_64-gp2"
         response = ec2.describe_images(
             Owners=['amazon'],
             Filters=[
@@ -130,7 +128,6 @@ class AWSManager(CloudProviderInterface):
         :param tags: A list of tag dictionaries: [{'Key': 'key', 'Value': 'value'}, ...]
         """
         ec2 = self.session.client('ec2', region_name=region)
-        # If tags is empty, consider what to do. Currently, we just update whatever keys are given.
         # This replaces or adds tags. Existing tags not mentioned won't be deleted automatically; to remove tags, call ec2.delete_tags().
         if tags:
             ec2.create_tags(
@@ -140,3 +137,26 @@ class AWSManager(CloudProviderInterface):
             print(f"Instance {instance_id} tags updated successfully.")
         else:
             print("No tags provided. No changes made.")
+
+    # Storage-related methods
+    def list_buckets(self) -> List[str]:
+        s3 = self.session.client('s3', region_name='us-east-1')
+        response = s3.list_buckets()
+        buckets = [b['Name'] for b in response.get('Buckets', [])]
+        return buckets
+
+    def create_bucket(self, bucket_name: str, region: str = None):
+        s3 = self.session.client('s3', region_name=region or self.regions[0])
+        create_params = {}
+        current_region = region or self.regions[0]
+        if current_region != "us-east-1":
+            create_params = {
+                'CreateBucketConfiguration': {
+                    'LocationConstraint': current_region
+                }
+            }
+        s3.create_bucket(Bucket=bucket_name, **create_params)
+
+    def delete_bucket(self, bucket_name: str):
+        s3 = self.session.client('s3', region_name='us-east-1')
+        s3.delete_bucket(Bucket=bucket_name)

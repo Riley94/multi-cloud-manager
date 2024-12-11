@@ -1,0 +1,23 @@
+<!-- templates/confirm_gcp_bucket_deletion.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Confirm Bucket Deletion</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin:20px; }
+        button { margin:10px; padding:8px 12px; border:none; border-radius:4px; }
+        .delete-btn { background:#d9534f; color:#fff; }
+        .cancel-btn { background:#aaa; color:#000; }
+    </style>
+</head>
+<body>
+    <h1>Bucket Not Empty</h1>
+    <p>The bucket <strong>{{ bucket_name }}</strong> is not empty. Do you want to delete all objects in this bucket and then delete the bucket?</p>
+    <form method="POST">
+        <button type="submit" class="delete-btn">Yes, Force Delete</button>
+        <a href="{{ url_for('gcp_page') }}" class="cancel-btn" style="text-decoration:none; padding:8px 12px; border:1px solid #aaa; border-radius:4px; background:#eee;">Cancel</a>
+    </form>
+</body>
+</html>

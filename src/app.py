@@ -28,6 +28,10 @@ def index():
     # This page will display provider options
     return render_template("index.html")
 
+# ---------------------------------------------------------------------
+# AWS Routes
+# ---------------------------------------------------------------------
+
 @app.route("/aws")
 def aws_page():
     # Load config if needed, or default profiles from config.yaml
@@ -37,8 +41,11 @@ def aws_page():
 
     aws_manager = AWSManager(regions=aws_regions, profile=aws_profile)
     aws_instances = aws_manager.list_compute_instances()
+    buckets = aws_manager.list_buckets()
 
-    return render_template("aws.html", instances=aws_instances)
+    return render_template("aws.html", instances=aws_instances, buckets=buckets)
+
+# - AWS Compute Routes
 
 @app.route("/aws/create", methods=["GET", "POST"])
 def create_aws_instance():
@@ -91,6 +98,7 @@ def delete_aws_instance(instance_id):
         flash(f"Error deleting instance {instance_id}: {e}")
     return redirect(url_for('aws_page'))
 
+
 @app.route("/aws/modify/<instance_id>", methods=["GET", "POST"])
 def modify_aws_instance(instance_id):
     config = load_config()
@@ -125,6 +133,41 @@ def modify_aws_instance(instance_id):
 
     return render_template("modify_aws_instance.html", instance_id=instance_id, region=region, tags=current_tags)
 
+# - AWS Storage Routes
+
+@app.route("/aws/storage/create", methods=["POST"])
+def create_aws_bucket():
+    config = load_config()
+    aws_profile = config["aws"].get("profile", None)
+    aws_regions = config["aws"].get("regions", ["us-east-1"])
+    aws_manager = AWSManager(regions=aws_regions, profile=aws_profile)
+
+    bucket_name = request.form.get("bucket_name")
+    try:
+        # Create in the first region, or add a region selection if desired
+        aws_manager.create_bucket(bucket_name, region=aws_regions[0])
+        flash(f"Bucket {bucket_name} created successfully on AWS.")
+    except Exception as e:
+        flash(f"Error creating AWS bucket: {e}")
+    return redirect(url_for('aws_page'))
+
+@app.route("/aws/storage/delete/<bucket_name>")
+def delete_aws_bucket(bucket_name):
+    config = load_config()
+    aws_profile = config["aws"].get("profile", None)
+    aws_regions = config["aws"].get("regions", ["us-east-1"])
+    aws_manager = AWSManager(regions=aws_regions, profile=aws_profile)
+    try:
+        aws_manager.delete_bucket(bucket_name)
+        flash(f"Bucket {bucket_name} deleted successfully from AWS.")
+    except Exception as e:
+        flash(f"Error deleting AWS bucket: {e}")
+    return redirect(url_for('aws_page'))
+
+# ---------------------------------------------------------------------
+# GCP Routes
+# ---------------------------------------------------------------------
+
 @app.route("/gcp")
 def gcp_page():
     # Load config
@@ -136,9 +179,12 @@ def gcp_page():
 
     gcp_manager = GCPManager(projects=gcp_projects, zones=gcp_zones, credentials_file=gcp_credentials_file)
     gcp_instances = gcp_manager.list_compute_instances()
+    buckets = gcp_manager.list_buckets()
 
     # Render GCP page with instance info
-    return render_template("gcp.html", instances=gcp_instances)
+    return render_template("gcp.html", instances=gcp_instances, buckets=buckets)
+
+# - GCP Compute Routes
 
 @app.route("/gcp/create", methods=["GET", "POST"])
 def create_gcp_instance():
@@ -218,7 +264,6 @@ def modify_gcp_instance(instance_name):
 
     if request.method == "POST":
         # Parse form data for labels and metadata
-        # Labels and metadata likely come in as key-value pairs
         label_keys = request.form.getlist("label_key")
         label_vals = request.form.getlist("label_value")
         metadata_keys = request.form.getlist("metadata_key")
@@ -257,6 +302,56 @@ def modify_gcp_instance(instance_name):
                            zone=zone,
                            labels=current_labels,
                            metadata=current_metadata)
+
+# - GCP Storage Routes
+
+@app.route("/gcp/storage/create", methods=["POST"])
+def create_gcp_bucket():
+    config = load_config()
+    gcp_credentials_file = config["gcp"].get("credentials_file", None)
+    gcp_projects = config["gcp"].get("projects", [])
+    gcp_zones = config["gcp"].get("zones", ["us-central1-a"])
+    gcp_manager = GCPManager(projects=gcp_projects, zones=gcp_zones, credentials_file=gcp_credentials_file)
+    bucket_name = request.form.get("bucket_name")
+    try:
+        gcp_manager.create_bucket(bucket_name)
+        flash(f"Bucket {bucket_name} created successfully on GCP.")
+    except Exception as e:
+        flash(f"Error creating GCP bucket: {e}")
+    return redirect(url_for('gcp_page'))
+
+@app.route("/gcp/storage/delete/<bucket_name>", methods=["GET", "POST"])
+def delete_gcp_bucket(bucket_name):
+    config = load_config()
+    gcp_credentials_file = config["gcp"].get("credentials_file", None)
+    gcp_projects = config["gcp"].get("projects", [])
+    gcp_zones = config["gcp"].get("zones", ["us-central1-a"])
+    gcp_manager = GCPManager(projects=gcp_projects, zones=gcp_zones, credentials_file=gcp_credentials_file)
+
+    if request.method == "POST":
+        # This is the confirmation POST if user decided to force delete
+        # First, delete all objects, then delete the bucket
+        try:
+            gcp_manager.force_delete_bucket(bucket_name)
+            flash(f"Bucket {bucket_name} (and all its objects) deleted successfully from GCP.")
+        except Exception as e:
+            flash(f"Error force deleting GCP bucket: {e}")
+        return redirect(url_for('gcp_page'))
+
+    # GET request: try to delete bucket normally
+    try:
+        gcp_manager.delete_bucket(bucket_name)
+        flash(f"Bucket {bucket_name} deleted successfully from GCP.")
+        return redirect(url_for('gcp_page'))
+    except Exception as e:
+        # If bucket not empty, show confirmation page
+        error_msg = str(e)
+        if "The bucket you tried to delete is not empty" in error_msg:
+            # Render a confirmation page
+            return render_template("confirm_gcp_bucket_deletion.html", bucket_name=bucket_name)
+        else:
+            flash(f"Error deleting GCP bucket: {e}")
+            return redirect(url_for('gcp_page'))
 
 if __name__ == "__main__":
     # Run the Flask app
