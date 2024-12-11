@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Modify GCP Instance</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; max-width: 600px; }
+        form { display: flex; flex-direction: column; }
+        label { margin-top: 10px; }
+        input { margin-top: 5px; padding: 8px; }
+        button { margin-top: 20px; padding: 8px 12px; background: #4caf50; color: #fff; border: none; border-radius: 4px; }
+        button:hover { background: #45a049; }
+        .back-link { display: inline-block; margin-top: 20px; text-decoration: none; background: #eee; border: 1px solid #aaa; padding: 8px 12px; border-radius: 4px; color: #000; }
+        .back-link:hover { background: #ddd; }
+        table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+        th, td { border: 1px solid #aaa; padding: 8px; }
+        th { background: #eee; }
+    </style>
+</head>
+<body>
+    <h1>Modify Instance: {{ instance_name }}</h1>
+    <form method="POST">
+        <h2>Labels</h2>
+        <p>Existing labels are listed below. Adjust values or add new rows as needed.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Key</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for k, v in labels.items() %}
+                <tr>
+                    <td><input type="text" name="label_key" value="{{ k }}"></td>
+                    <td><input type="text" name="label_value" value="{{ v }}"></td>
+                </tr>
+                {% endfor %}
+                <!-- Add a few empty rows for new labels -->
+                {% for i in range(3) %}
+                <tr>
+                    <td><input type="text" name="label_key"></td>
+                    <td><input type="text" name="label_value"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h2>Metadata</h2>
+        <p>Existing metadata is listed below. Adjust values or add new rows as needed.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Key</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for k, v in metadata.items() %}
+                <tr>
+                    <td><input type="text" name="metadata_key" value="{{ k }}"></td>
+                    <td><input type="text" name="metadata_value" value="{{ v }}"></td>
+                </tr>
+                {% endfor %}
+                <!-- Add a few empty rows for new metadata -->
+                {% for i in range(3) %}
+                <tr>
+                    <td><input type="text" name="metadata_key"></td>
+                    <td><input type="text" name="metadata_value"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <button type="submit">Update Instance</button>
+    </form>
+    <a class="back-link" href="{{ url_for('gcp_page') }}">Back to GCP Instances</a>
+</body>
+</html>

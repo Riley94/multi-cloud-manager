@@ -70,8 +70,9 @@
                 <td>{{ instance.instance_type }}</td>
                 <td>{{ instance.status }}</td>
                 <td>
-                    <!-- Modify/Delete currently just placeholders -->
-                    <button onclick="alert('Modify instance {{ instance.instance_id }} coming soon!')">Modify</button>
+                    <a href="{{ url_for('modify_gcp_instance', instance_name=instance.name, project=instance.project, zone=instance.region) }}">
+                        Modify
+                    </a>
                     <!-- Add a confirm dialog for safety -->
                     <a href="{{ url_for('delete_gcp_instance', instance_name=instance.name, zone=instance.region, project=instance.project) }}" 
                     onclick="return confirm('Are you sure you want to delete this instance?');">

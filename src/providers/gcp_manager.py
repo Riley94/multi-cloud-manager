@@ -201,3 +201,45 @@ class GCPManager(CloudProviderInterface):
         operation = instance_client.delete(project=project, zone=zone, instance=instance_name)
         wait_for_extended_operation(operation, "instance deletion")
         print(f"Instance {instance_name} deleted successfully.")
+
+    def get_instance_details(self, project: str, zone: str, instance_name: str) -> compute_v1.Instance:
+        instance_client = compute_v1.InstancesClient()
+        return instance_client.get(project=project, zone=zone, instance=instance_name)
+
+    def set_instance_labels(self, project: str, zone: str, instance_name: str, labels: dict):
+        instance_client = compute_v1.InstancesClient()
+        # Get the fingerprint from the current instance
+        instance = instance_client.get(project=project, zone=zone, instance=instance_name)
+        label_fingerprint = instance.label_fingerprint
+
+        request = compute_v1.SetLabelsInstanceRequest()
+        request.project = project
+        request.zone = zone
+        request.instance = instance_name
+        request.instances_set_labels_request_resource = compute_v1.InstancesSetLabelsRequest(
+            label_fingerprint=label_fingerprint,
+            labels=labels
+        )
+
+        operation = instance_client.set_labels(request=request)
+        wait_for_extended_operation(operation, "setting instance labels")
+
+    def set_instance_metadata(self, project: str, zone: str, instance_name: str, metadata: dict):
+        instance_client = compute_v1.InstancesClient()
+        instance = instance_client.get(project=project, zone=zone, instance=instance_name)
+        metadata_obj = instance.metadata
+        # Convert dict to list of Metadata.Items
+        new_items = []
+        for k, v in metadata.items():
+            new_items.append({"key": k, "value": v})
+
+        metadata_obj.items = new_items
+
+        request = compute_v1.SetMetadataInstanceRequest()
+        request.project = project
+        request.zone = zone
+        request.instance = instance_name
+        request.metadata_resource = metadata_obj
+
+        operation = instance_client.set_metadata(request=request)
+        wait_for_extended_operation(operation, "setting instance metadata")

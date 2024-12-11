@@ -107,6 +107,60 @@ def delete_gcp_instance(instance_name):
         flash(f"Error deleting instance {instance_name}: {e}")
     return redirect(url_for('gcp_page'))
 
+@app.route("/gcp/modify/<instance_name>", methods=["GET", "POST"])
+def modify_gcp_instance(instance_name):
+    project = request.args.get("project")
+    zone = request.args.get("zone")
+    if not project or not zone:
+        flash("Missing project or zone for modifying instance.")
+        return redirect(url_for('gcp_page'))
+
+    config = load_config()
+    gcp_credentials_file = config["gcp"].get("credentials_file", None)
+    gcp_manager = GCPManager(projects=[project], zones=[zone], credentials_file=gcp_credentials_file)
+
+    if request.method == "POST":
+        # Parse form data for labels and metadata
+        # Labels and metadata likely come in as key-value pairs
+        label_keys = request.form.getlist("label_key")
+        label_vals = request.form.getlist("label_value")
+        metadata_keys = request.form.getlist("metadata_key")
+        metadata_vals = request.form.getlist("metadata_value")
+
+        labels = {}
+        for k, v in zip(label_keys, label_vals):
+            if k.strip():
+                labels[k.strip()] = v.strip()
+
+        metadata = {}
+        for k, v in zip(metadata_keys, metadata_vals):
+            if k.strip():
+                metadata[k.strip()] = v.strip()
+
+        try:
+            gcp_manager.set_instance_labels(project, zone, instance_name, labels)
+            gcp_manager.set_instance_metadata(project, zone, instance_name, metadata)
+            flash(f"Instance {instance_name} updated successfully.")
+        except Exception as e:
+            flash(f"Error modifying instance: {e}")
+
+        return redirect(url_for('gcp_page'))
+
+    # GET request: Show current labels and metadata
+    instance = gcp_manager.get_instance_details(project, zone, instance_name)
+    current_labels = instance.labels or {}
+    current_metadata = {}
+    if instance.metadata and instance.metadata.items:
+        for item in instance.metadata.items:
+            current_metadata[item.key] = item.value
+
+    return render_template("modify_gcp_instance.html",
+                           instance_name=instance_name,
+                           project=project,
+                           zone=zone,
+                           labels=current_labels,
+                           metadata=current_metadata)
+
 if __name__ == "__main__":
     # Run the Flask app
     # In production, use a WSGI server or other deployment strategies.
