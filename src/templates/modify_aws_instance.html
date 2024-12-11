@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Modify AWS Instance</title>
+</head>
+<body>
+    <h1>Modify Instance: {{ instance_id }}</h1>
+    <h2>Tags</h2>
+    <p>Adjust or add tags as needed</p>
+    <form method="POST">
+        <table>
+            <thead>
+                <tr><th>Key</th><th>Value</th></tr>
+            </thead>
+            <tbody>
+                {% for tag in tags %}
+                <tr>
+                    <td><input type="text" name="tag_key" value="{{ tag.Key }}"></td>
+                    <td><input type="text" name="tag_value" value="{{ tag.Value }}"></td>
+                </tr>
+                {% endfor %}
+                <!-- Add a few blank rows for new tags -->
+                {% for i in range(3) %}
+                <tr>
+                    <td><input type="text" name="tag_key"></td>
+                    <td><input type="text" name="tag_value"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit">Update Instance</button>
+    </form>
+    <p><a href="{{ url_for('aws_page') }}">Back to AWS Instances</a></p>
+</body>
+</html>

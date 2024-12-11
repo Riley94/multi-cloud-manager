@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Create AWS Instance</title>
+</head>
+<body>
+    <h1>Create a New AWS Instance</h1>
+    <form method="POST">
+        <label for="instance_name">Instance Name:</label>
+        <input type="text" name="instance_name" id="instance_name" required />
+
+        <label for="region">Region:</label>
+        <select name="region" id="region">
+            {% for r in regions %}
+            <option value="{{ r }}">{{ r }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="instance_type">Instance Type:</label>
+        <input type="text" name="instance_type" id="instance_type" value="t2.micro" required />
+
+        <label for="image_id">Select AMI:</label>
+        <select name="image_id" id="image_id" required>
+            {% for ami in amis %}
+            <option value="{{ ami.ImageId }}">{{ ami.ImageId }} - {{ ami.Name }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- Add more fields as needed (VPC, subnet, key pair, security groups, etc.) -->
+
+        <button type="submit">Create Instance</button>
+    </form>
+    <p><a href="{{ url_for('aws_page') }}">Back to AWS Instances</a></p>
+</body>
+</html>

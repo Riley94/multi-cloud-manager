@@ -28,6 +28,103 @@ def index():
     # This page will display provider options
     return render_template("index.html")
 
+@app.route("/aws")
+def aws_page():
+    # Load config if needed, or default profiles from config.yaml
+    config = load_config()
+    aws_profile = config["aws"].get("profile", None)
+    aws_regions = config["aws"].get("regions", ["us-east-1"])
+
+    aws_manager = AWSManager(regions=aws_regions, profile=aws_profile)
+    aws_instances = aws_manager.list_compute_instances()
+
+    return render_template("aws.html", instances=aws_instances)
+
+@app.route("/aws/create", methods=["GET", "POST"])
+def create_aws_instance():
+    # On POST, call aws_manager.create_instance(...) and then flash a message/redirect.
+    config = load_config()
+    aws_profile = config["aws"].get("profile", None)
+    aws_regions = config["aws"].get("regions", ["us-east-1"])
+    # Default to the first region for AMI retrieval or let user pick a region first (for simplicity we pick first)
+    default_region = aws_regions[0]
+    aws_manager = AWSManager(regions=[default_region], profile=aws_profile)
+    # GET request: Retrieve AMIs for the default region
+    amis = aws_manager.get_amis(default_region)
+
+    if request.method == "POST":
+        # Extract form data for instance creation
+        instance_name = request.form.get("instance_name")
+        region = request.form.get("region") or "us-east-1"
+        instance_type = request.form.get("instance_type") or "t2.micro"
+        image_id = request.form.get("image_id") or "ami-1234567890abcdef0"
+
+        try:
+            aws_manager.create_instance(
+                name=instance_name,
+                region=region,
+                instance_type=instance_type,
+                image_id=image_id
+            )
+            flash(f"Instance {instance_name} created successfully.")
+        except Exception as e:
+            flash(f"Error creating instance: {e}")
+        return redirect(url_for('aws_page'))
+
+    return render_template("create_aws_instance.html", regions=aws_regions, amis=amis)
+
+@app.route("/aws/delete/<instance_id>")
+def delete_aws_instance(instance_id):
+    config = load_config()
+    aws_profile = config["aws"].get("profile", None)
+    aws_regions = config["aws"].get("regions", ["us-east-1"])
+    region = request.args.get("region")
+    if not region:
+        flash("No region specified for instance deletion.")
+        return redirect(url_for('aws_page'))
+
+    aws_manager = AWSManager(regions=[region], profile=aws_profile)
+    try:
+        aws_manager.delete_instance(instance_id=instance_id, region=region)
+        flash(f"Instance {instance_id} deleted successfully.")
+    except Exception as e:
+        flash(f"Error deleting instance {instance_id}: {e}")
+    return redirect(url_for('aws_page'))
+
+@app.route("/aws/modify/<instance_id>", methods=["GET", "POST"])
+def modify_aws_instance(instance_id):
+    config = load_config()
+    aws_profile = config["aws"].get("profile", None)
+    region = request.args.get("region")
+    if not region:
+        flash("No region specified for instance modification.")
+        return redirect(url_for('aws_page'))
+
+    aws_manager = AWSManager(regions=[region], profile=aws_profile)
+
+    if request.method == "POST":
+        # Parse form data to modify instance
+        tag_keys = request.form.getlist("tag_key")
+        tag_vals = request.form.getlist("tag_value")
+        tags = []
+        for k, v in zip(tag_keys, tag_vals):
+            if k.strip():
+                tags.append({'Key': k.strip(), 'Value': v.strip()})
+
+        try:
+            aws_manager.modify_instance(instance_id=instance_id, region=region, tags=tags)
+            flash(f"Instance {instance_id} updated successfully.")
+        except Exception as e:
+            flash(f"Error modifying instance {instance_id}: {e}")
+
+        return redirect(url_for('aws_page'))
+
+    # GET request: show the current tags or properties
+    instance_details = aws_manager.get_instance_details(instance_id=instance_id, region=region)
+    current_tags = instance_details.get('Tags', [])  # depends on aws_manager implementation
+
+    return render_template("modify_aws_instance.html", instance_id=instance_id, region=region, tags=current_tags)
+
 @app.route("/gcp")
 def gcp_page():
     # Load config
