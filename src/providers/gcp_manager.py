@@ -83,7 +83,8 @@ class GCPManager(CloudProviderInterface):
                         provider="gcp",
                         region=zone,
                         instance_type=inst.machine_type,
-                        status=inst.status
+                        status=inst.status,
+                        project=project
                     ))
         return instances
     

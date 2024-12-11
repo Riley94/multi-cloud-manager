@@ -86,6 +86,27 @@ def create_gcp_instance():
     # GET request shows the form
     return render_template("create_gcp_instance.html", gcp_projects=gcp_projects)
 
+@app.route("/gcp/delete/<instance_name>")
+def delete_gcp_instance(instance_name):
+    config = load_config()
+    gcp_projects = config["gcp"].get("projects", [])
+    gcp_credentials_file = config["gcp"].get("credentials_file", None)
+
+    # Get the zone and project from query parameter
+    zone = request.args.get("zone")
+    project = request.args.get("project")
+    if not project or not zone:
+        flash("No zone or project specified for instance deletion.")
+        return redirect(url_for('gcp_page'))
+
+    gcp_manager = GCPManager(projects=[project], zones=[zone], credentials_file=gcp_credentials_file)
+    try:
+        gcp_manager.delete_instance(project=project, zone=zone, instance_name=instance_name)
+        flash(f"Instance {instance_name} deleted successfully.")
+    except Exception as e:
+        flash(f"Error deleting instance {instance_name}: {e}")
+    return redirect(url_for('gcp_page'))
+
 if __name__ == "__main__":
     # Run the Flask app
     # In production, use a WSGI server or other deployment strategies.
